@@ -24,9 +24,20 @@ class SlidingWindowRateLimiter:
         return len(self.user_messages[user_id]) < self.max_requests
 
     def record_message(self, user_id):
-        """Записати повідомлення користувача."""
+        """Спроба записати повідомлення. Повертає True, якщо дозволено."""
         current_time = time.time()
-        self.user_messages[user_id].append(current_time)
+        window_start = current_time - self.window_size
+
+        # Очистити старі повідомлення поза межами вікна
+        messages = self.user_messages[user_id]
+        while messages and messages[0] < window_start:
+            messages.popleft()
+
+        if len(messages) < self.max_requests:
+            messages.append(current_time)
+            return True
+        else:
+            return False
 
     def time_until_next_allowed(self, user_id):
         """Скільки часу залишилось до наступного дозволеного повідомлення."""
